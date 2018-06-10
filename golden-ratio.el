@@ -51,9 +51,11 @@ will not cause the window to be resized to the golden ratio."
   :group 'golden-ratio
   :type '(repeat symbol))
 
-(defcustom golden-ratio-extra-commands
-  '(windmove-left windmove-right windmove-down windmove-up)
-  "List of extra commands used to jump to other window."
+(defcustom golden-ratio-advised-commands
+  '(other-window pop-to-buffer ace-window select-window-9 select-window-8 select-window-7 select-window-6 select-window-5 select-window-4 select-window-3 select-window-2 select-window-1 select-window-0 windmove-left windmove-right windmove-down windmove-up)
+  "List of commands used to jump to other window.
+Commands not on this list are not capable of triggering golden-ratio,
+unless they themselves call one of these."
   :group 'golden-ratio
   :type '(repeat symbol))
 
@@ -168,9 +170,9 @@ will prevent the window to be resized to the golden ratio."
   (prog1 ad-do-it (golden-ratio)))
 
 (defun golden-ratio--post-command-hook ()
-  (when (or (memq this-command golden-ratio-extra-commands)
+  (when (or (memq this-command golden-ratio-advised-commands)
             (and (consp this-command) ; A lambda form.
-                 (loop for com in golden-ratio-extra-commands
+                 (loop for com in golden-ratio-advised-commands
                        thereis (or (memq com this-command)
                                    (memq (car-safe com) this-command)))))
     ;; This is needed in emacs-25 to avoid this error from `recenter':
@@ -182,23 +184,31 @@ will prevent the window to be resized to the golden ratio."
   (run-at-time 0.1 nil (lambda ()
 			 (golden-ratio))))
 
+(defun golden-ratio-command-advisement (&rest args)
+  (golden-ratio))
+
 ;;;###autoload
 (define-minor-mode golden-ratio-mode
-    "Enable automatic window resizing with golden ratio."
+  "Enable automatic window resizing with golden ratio."
   :lighter " Golden"
   :global t
   (if golden-ratio-mode
       (progn
         ;; (add-hook 'window-configuration-change-hook 'golden-ratio)
-        (add-hook 'post-command-hook 'golden-ratio--post-command-hook)
+        ;; (add-hook 'post-command-hook 'golden-ratio--post-command-hook)
+        (cl-loop for func in golden-ratio-advised-commands
+                 do (advice-add func :after 'golden-ratio-command-advisement))
         (add-hook 'mouse-leave-buffer-hook 'golden-ratio--mouse-leave-buffer-hook)
-        (ad-activate 'other-window)
-        (ad-activate 'pop-to-buffer))
-      ;; (remove-hook 'window-configuration-change-hook 'golden-ratio)
-      (remove-hook 'post-command-hook 'golden-ratio--post-command-hook)
-      (remove-hook 'mouse-leave-buffer-hook 'golden-ratio--mouse-leave-buffer-hook)
-      (ad-deactivate 'other-window)
-      (ad-deactivate 'pop-to-buffer)))
+        ;; (ad-activate 'other-window)
+        ;; (ad-activate 'pop-to-buffer)
+        )
+    ;; (remove-hook 'window-configuration-change-hook 'golden-ratio)
+    ;; (remove-hook 'post-command-hook 'golden-ratio--post-command-hook)
+    (cl-loop for func in golden-ratio-advised-commands
+             do (advice-remove func 'golden-ratio-command-advisement))
+    (remove-hook 'mouse-leave-buffer-hook 'golden-ratio--mouse-leave-buffer-hook)
+    ;; (ad-deactivate 'other-window)
+    (ad-deactivate 'pop-to-buffer)))
 
 
 (provide 'golden-ratio)
