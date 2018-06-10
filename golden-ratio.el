@@ -15,7 +15,7 @@
 ;; This file is free software (MIT License)
 
 ;;; Code:
-(eval-when-compile (require 'cl))
+(eval-when-compile (require 'cl-lib))
 
 (defconst golden-ratio--value 1.618
   "The golden ratio value itself.")
@@ -143,11 +143,11 @@ will prevent the window to be resized to the golden ratio."
               (member (buffer-name)
                       golden-ratio-exclude-buffer-names)
               (and golden-ratio-exclude-buffer-regexp
-                (loop for r in golden-ratio-exclude-buffer-regexp
+                (cl-loop for r in golden-ratio-exclude-buffer-regexp
                          thereis (string-match r (buffer-name))))
               (and golden-ratio-inhibit-functions
-                   (loop for fun in golden-ratio-inhibit-functions
-                         thereis (funcall fun))))
+                   (cl-loop for fun in golden-ratio-inhibit-functions
+                            thereis (funcall fun))))
     (let ((dims (golden-ratio--dimensions))
           (golden-ratio-mode nil))
       ;; Always disable `golden-ratio-mode' to avoid
